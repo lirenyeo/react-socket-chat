@@ -1,0 +1,17 @@
+{
+  "name": "express-socket",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chance": "^1.0.16",
+    "express": "^4.16.4",
+    "sentencer": "^0.1.5",
+    "socket.io": "^2.1.1"
+  }
+}
