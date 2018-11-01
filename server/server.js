@@ -22,17 +22,24 @@ io.on('connection', (socket) => {
       .map((s) => s.charAt(0).toUpperCase() + s.substring(1))
       .join(' ')
 
-    users.push({
+    const newUser = {
       id: socket.id,
       name: randomName,
-    })
+    }
 
-    socket.emit('GET_USERNAME', randomName)
+    users.push(newUser)
+    socket.emit('GET_USER_INFO', newUser)
     io.emit('UPDATE_USER_LIST', users)
   })
 
   socket.on('BROADCAST_MESSAGE', data => {
     io.emit('RECEIVE_BROADCAST', data);
+  })
+
+  socket.on('SEND_PM', data => {
+    console.log(data)
+    socket.emit('RECEIVE_PM', data)
+    io.to(data.recipient.id).emit('RECEIVE_PM', data)
   })
 
   socket.on('disconnect', () => {

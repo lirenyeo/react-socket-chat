@@ -1,82 +1,118 @@
 import React from 'react'
+import { BrowserRouter as Router, Route } from 'react-router-dom'
 import {
   Container,
   Row,
   Col,
   Card,
-  CardHeader,
-  CardBody,
-  CardFooter
  } from 'reactstrap'
 
-import Socket from './socket'
-import ChatForm from './components/ChatForm'
-import ChatConversation from './components/ChatConversation'
+import HomePage from './pages/HomePage'
+import PrivateChatPage from './pages/PrivateChatPage'
 import ChatSidebar from './components/ChatSidebar'
+import Socket from './socket'
 import './App.css'
 
 class App extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      name: '',
-      conversations: [],
-      allUsers: [],
+      user: {
+        id: null,
+        name: '',
+      },
+      users: [],
+      publicConversations: [],
+      privateConversations: {},
     }
 
     // Tells server a new user has joined!
     Socket.emit('NEW_USER')
 
-    // Listen to server for a random generated username
-    Socket.on('GET_USERNAME', name => {
-      this.setState({name})
+    // Listen to server for a random generated user (with name and socketId)
+    Socket.on('GET_USER_INFO', user => {
+      this.setState({user})
     })
 
     // Listen to server for user list update whenever someone joins
-    Socket.on('UPDATE_USER_LIST', allUsers => {
-      this.setState({allUsers})
+    Socket.on('UPDATE_USER_LIST', users => {
+      this.setState({users})
     })
 
     // Listen to server for new message (including your own message)
     Socket.on('RECEIVE_BROADCAST', newMessage => {
       this.setState({
-        conversations: [...this.state.conversations, newMessage]
+        publicConversations: [...this.state.publicConversations, newMessage]
       })
       // Scroll conversation to bottom whenever a new message comes in
       // Preferable way is to use 'refs' prop in the chat-message-container
       document.getElementById('chat-message-container').scrollTop = 10000
     })
+
+    // Listen to private message
+    Socket.on('RECEIVE_PM', ({sender, recipient, message}) => {
+      const { privateConversations, user } = this.state
+      const key = sender.id === user.id ? recipient.id : sender.id
+      this.setState({
+        privateConversations: {
+          ...privateConversations,
+          [key]: [
+            ...(privateConversations[key] || []),
+            { message, sender },
+          ]
+        }
+      })
+      document.getElementById('chat-message-container').scrollTop = 10000
+    })
   }
 
+  _sendPrivateMessage = ({ recipient, message }) => {
+    Socket.emit('SEND_PM', {
+      sender: this.state.user,
+      recipient,
+      message,
+    })
+  }
 
   render() {
+    const { user, users, publicConversations, privateConversations } = this.state
     return (
-      <Container>
-        <Card className="mt-3">
-          <CardHeader>
-            Welcome!&nbsp;
-            {
-              this.state.name.length
-                ? <span>Your name is <strong>{this.state.name}</strong>.</span>
-                : null
-
-            }
-          </CardHeader>
-          <CardBody className="p-0">
+      <Router>
+        <Container>
+          <Card className="mt-3">
             <Row noGutters>
               <Col xs={9}>
-                <ChatConversation conversations={this.state.conversations} />
+                <Route
+                  exact
+                  path="/"
+                  render={
+                    () =>
+                      <HomePage
+                        user={user}
+                        conversations={publicConversations}
+                      />
+                  }
+                />
+                <Route
+                  path="/pm/:id"
+                  render={
+                    props =>
+                      <PrivateChatPage
+                        sender={user}
+                        conversations={privateConversations}
+                        recipient={users.find(u => u.id === props.match.params.id)}
+                      />
+                  }
+                />
               </Col>
-              <Col xs={3}>
-                <ChatSidebar users={this.state.allUsers} />
+
+              <Col xs={3} className="left-border">
+                <ChatSidebar currentUser={user} users={users} />
               </Col>
             </Row>
-          </CardBody>
-          <CardFooter className="card-footer">
-            <ChatForm name={this.state.name}/>
-          </CardFooter>
-        </Card>
-      </Container>
+          </Card>
+        </Container>
+      </Router>
     )
   }
 }

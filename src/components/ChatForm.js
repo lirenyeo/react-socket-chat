@@ -1,33 +1,31 @@
 import React from 'react'
-import Socket from '../socket'
 
 export default class ChatForm extends React.Component {
   state= {
     message: 'Hello socket.io! How are you doing?',
   }
 
-  _onTextInput = e => {
+  onTextInput = e => {
     this.setState({
       [e.target.name]: e.target.value
     })
   }
 
-  _onFormSubmit = e => {
+  onFormSubmit = e => {
     e.preventDefault()
-    const { message } = this.state
-    const { name } = this.props
-    Socket.emit('BROADCAST_MESSAGE', {
-      name,
-      message,
+    this.props.sendMessage({
+      recipient: this.props.recipient,
+      message: this.state.message,
     })
   }
 
   render() {
-    return(
-      <form className="form-row align-items-center" onSubmit={this._onFormSubmit}>
+    // console.log('render ChatForm!', this.props.sendMessage)
+    return (
+      <form className="form-row align-items-center" onSubmit={this.onFormSubmit}>
         <div className="input-group">
           {
-            this.props.name.length
+            this.props.name && this.props.name.length
               ? <div className="input-group-prepend">
                   <div className="input-group-text">
                     {this.props.name}:
@@ -40,7 +38,7 @@ export default class ChatForm extends React.Component {
             type="text"
             name="message"
             value={this.state.message}
-            onChange={this._onTextInput}
+            onChange={this.onTextInput}
           />
           <span className="input-group-btn">
             <input
