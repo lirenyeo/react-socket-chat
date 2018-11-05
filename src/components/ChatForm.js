@@ -1,8 +1,8 @@
 import React from 'react'
 
 export default class ChatForm extends React.Component {
-  state= {
-    message: 'Hello socket.io! How are you doing?',
+  state = {
+    message: '',
   }
 
   onTextInput = e => {
@@ -14,21 +14,25 @@ export default class ChatForm extends React.Component {
   onFormSubmit = e => {
     e.preventDefault()
     this.props.sendMessage({
-      recipient: this.props.recipient,
-      message: this.state.message,
+      message: {
+        type: 'chat',
+        text: this.state.message,
+      },
     })
   }
 
   render() {
-    // console.log('render ChatForm!', this.props.sendMessage)
+    const { senderName } = this.props
+    const { message } = this.state
+
     return (
       <form className="form-row align-items-center" onSubmit={this.onFormSubmit}>
         <div className="input-group">
           {
-            this.props.name && this.props.name.length
+            senderName && senderName.length
               ? <div className="input-group-prepend">
                   <div className="input-group-text">
-                    {this.props.name}:
+                    {senderName}:
                   </div>
                 </div>
               : null
@@ -37,7 +41,7 @@ export default class ChatForm extends React.Component {
             className="form-control"
             type="text"
             name="message"
-            value={this.state.message}
+            value={message}
             onChange={this.onTextInput}
           />
           <span className="input-group-btn">

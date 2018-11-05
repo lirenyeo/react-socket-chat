@@ -6,22 +6,39 @@ import {
  } from 'reactstrap'
  import { Link } from 'react-router-dom'
 
- import Socket from '../socket'
+ import Socket from '../utils/socket'
  import ChatForm from '../components/ChatForm'
  import ChatConversation from '../components/ChatConversation'
 
 export default class PrivateChatPage extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      conversations: []
+    }
 
-  sendPrivateMessage = ({ recipient, message }) => {
-    Socket.emit('SEND_PM', {
+    Socket.on('RECEIVE_PRIVATE_MESSAGE', conversation => {
+      this.setState({
+        conversations: [...this.state.conversations, conversation]
+      })
+    })
+  }
+
+  sendPrivateMessage = ({message}) => {
+    Socket.emit('SEND_PRIVATE_MESSAGE', {
       sender: this.props.sender,
-      recipient,
       message,
     })
   }
 
+  componentWillUnmount() {
+    Socket.emit('LEAVE_PRIVATE_CHAT', {
+      leaver: this.props.sender
+    })
+  }
+
   render() {
-    const { recipient, sender, conversations } = this.props
+    const { recipient, sender } = this.props
 
     return (
       <>
@@ -37,13 +54,12 @@ export default class PrivateChatPage extends React.Component {
         </CardHeader>
         <CardBody className="p-0">
           <ChatConversation
-            conversations={ conversations[recipient.id] || []}
+            conversations={this.state.conversations}
           />
         </CardBody>
         <CardFooter className="card-footer">
           <ChatForm
-            name={sender.name}
-            recipient={recipient}
+            senderName={sender.name}
             sendMessage={this.sendPrivateMessage}
           />
         </CardFooter>

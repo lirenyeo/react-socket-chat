@@ -1,12 +1,22 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { withRouter } from 'react-router-dom'
 import {
   ListGroup,
   ListGroupItem,
  } from 'reactstrap'
 
+import Socket from '../utils/socket'
 
-export default class ChatSidebar extends React.Component {
+
+class ChatSidebar extends React.Component {
+  startPrivateChat = ({name, id}) => {
+    Socket.emit('START_PRIVATE_CHAT', {
+      sender: this.props.currentUser,
+      recipient: {id, name}
+    })
+    this.props.history.push(`/pm/${id}`)
+  }
+
   render() {
     const { currentUser, users } = this.props
     return (
@@ -22,9 +32,9 @@ export default class ChatSidebar extends React.Component {
                   {
                     currentUser.id === id
                       ? <span><span className="oi oi-person mr-2"></span>{name}(You)</span>
-                      : <Link to={`/pm/${id}`} key={id}>
+                      : <a href="#" onClick={() => {this.startPrivateChat({name, id})}} key={id}>
                           <span className="oi oi-person mr-2"></span>{name}
-                        </Link>
+                        </a>
                   }
                 </ListGroupItem>
               )
@@ -35,3 +45,5 @@ export default class ChatSidebar extends React.Component {
     )
   }
 }
+
+export default withRouter(ChatSidebar)

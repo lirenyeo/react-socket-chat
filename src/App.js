@@ -10,7 +10,7 @@ import {
 import HomePage from './pages/HomePage'
 import PrivateChatPage from './pages/PrivateChatPage'
 import ChatSidebar from './components/ChatSidebar'
-import Socket from './socket'
+import Socket from './utils/socket'
 import './App.css'
 
 class App extends React.Component {
@@ -22,8 +22,18 @@ class App extends React.Component {
         name: '',
       },
       users: [],
-      publicConversations: [],
-      privateConversations: {},
+      conversations: [],
+      /* conversation object structure:
+         {
+           sender: {
+             id: '', name: ''
+           },
+           message: {
+             type: 'chat' || 'notification',
+             text: '',
+           }
+         }
+       */
     }
 
     // Tells server a new user has joined!
@@ -40,42 +50,18 @@ class App extends React.Component {
     })
 
     // Listen to server for new message (including your own message)
-    Socket.on('RECEIVE_BROADCAST', newMessage => {
+    Socket.on('RECEIVE_BROADCAST', conversation => {
       this.setState({
-        publicConversations: [...this.state.publicConversations, newMessage]
+        conversations: [...this.state.conversations, conversation]
       })
       // Scroll conversation to bottom whenever a new message comes in
       // Preferable way is to use 'refs' prop in the chat-message-container
       document.getElementById('chat-message-container').scrollTop = 10000
     })
-
-    // Listen to private message
-    Socket.on('RECEIVE_PM', ({sender, recipient, message}) => {
-      const { privateConversations, user } = this.state
-      const key = sender.id === user.id ? recipient.id : sender.id
-      this.setState({
-        privateConversations: {
-          ...privateConversations,
-          [key]: [
-            ...(privateConversations[key] || []),
-            { message, sender },
-          ]
-        }
-      })
-      document.getElementById('chat-message-container').scrollTop = 10000
-    })
-  }
-
-  _sendPrivateMessage = ({ recipient, message }) => {
-    Socket.emit('SEND_PM', {
-      sender: this.state.user,
-      recipient,
-      message,
-    })
   }
 
   render() {
-    const { user, users, publicConversations, privateConversations } = this.state
+    const { user, users, conversations } = this.state
     return (
       <Router>
         <Container>
@@ -88,19 +74,18 @@ class App extends React.Component {
                   render={
                     () =>
                       <HomePage
-                        user={user}
-                        conversations={publicConversations}
+                        sender={user}
+                        conversations={conversations}
                       />
                   }
                 />
                 <Route
-                  path="/pm/:id"
+                  path="/pm/:recipientId"
                   render={
-                    props =>
+                    ({match}) =>
                       <PrivateChatPage
                         sender={user}
-                        conversations={privateConversations}
-                        recipient={users.find(u => u.id === props.match.params.id)}
+                        recipient={users.find(u => u.id === match.params.recipientId)}
                       />
                   }
                 />
